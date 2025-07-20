@@ -1,0 +1,74 @@
+body {
+  font-family: system-ui, sans-serif;
+  background: radial-gradient(#161b26,#0b0e13);
+  color: #e6ecf5;
+  margin: 0; padding: 0;
+}
+header { background:#1e2633; padding:0.5rem 1rem; display:flex; flex-direction:column; gap:0.4rem; }
+.meters { display:flex; gap:1.5rem; flex-wrap:wrap; font-size:0.9rem; }
+
+#battlefield {
+  display:flex; justify-content:space-around; align-items:center;
+  padding:1.2rem; min-height:200px;
+  position:relative;
+}
+
+.entity { width:100px; height:100px; position:relative; }
+
+.player {
+  background: url('../assets/images/player.png') 0 0/200px 100px no-repeat;
+  image-rendering: pixelated;
+}
+.player.attack { animation: attack 0.4s steps(2) 1; }
+.player.idle { background-position:0 0; }
+@keyframes attack {
+  0% { background-position:0 0; }
+  50% { background-position:-100px 0; }
+  100% { background-position:0 0; }
+}
+
+.boss {
+  border-radius:50%;
+  background:radial-gradient(#ff5,#f53);
+  box-shadow:0 0 12px 4px rgba(255,120,0,0.5);
+  animation:pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,100% { transform:scale(1); box-shadow:0 0 12px 4px rgba(255,120,0,0.5); }
+  50% { transform:scale(1.08); box-shadow:0 0 20px 8px rgba(255,160,0,0.7); }
+}
+
+.hazard-row { display:flex; gap:6px; flex-wrap:wrap; max-width:480px; }
+.hazard {
+  width:36px; height:36px; border:1px solid #555; border-radius:4px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.65rem; background:#2a3242; position:relative;
+  animation:pop 0.3s ease;
+}
+@keyframes pop { from { transform:scale(.2); opacity:0;} to { transform:scale(1); opacity:1;} }
+
+.hand {
+  display:flex; gap:0.6rem; padding:0.6rem; flex-wrap:wrap;
+  background:#12171f;
+  min-height:120px;
+  border-top:1px solid #222;
+}
+.card {
+  width:110px; padding:6px; background:#1d2735;
+  border:1px solid #3a4a60;
+  border-radius:6px;
+  cursor:pointer;
+  display:flex; flex-direction:column; gap:4px;
+  font-size:0.75rem;
+  transition:transform 0.15s, box-shadow 0.15s;
+}
+.card:hover { transform:translateY(-4px); box-shadow:0 4px 8px rgba(0,0,0,0.4); }
+.card.cost-high { border-color:#c66; }
+
+.controls { padding:0.6rem; display:flex; gap:0.6rem; }
+button { background:#2c3b50; color:#eee; border:1px solid #45576e; padding:0.5rem 0.9rem; border-radius:4px; cursor:pointer; }
+button:hover { background:#364b66; }
+
+#log { padding:0.6rem; font-size:0.75rem; max-height:160px; overflow-y:auto; background:#0f141b; border-top:1px solid #222; }
+.status-danger { color:#ff6767; }
+.status-win { color:#6fda6f; font-weight:bold; }

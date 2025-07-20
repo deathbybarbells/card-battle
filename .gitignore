@@ -1,0 +1,14 @@
+# Node / general web
+node_modules/
+dist/
+.DS_Store
+
+# Temp / OS
+*.log
+*.tmp
+
+# IDE
+.vscode/
+
+# Misc
+.env

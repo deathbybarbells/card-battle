@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Corrupted Core Clash</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+  <header>
+    <h1>Corrupted Core Clash</h1>
+    <div class="meters">
+      <div>Player HP: <span id="player-hp"></span></div>
+      <div>Boss HP: <span id="boss-hp"></span></div>
+      <div>Energy: <span id="energy"></span></div>
+      <div>Corruption: <span id="corruption"></span>/10</div>
+    </div>
+  </header>
+
+  <main>
+    <section id="battlefield">
+      <div id="player" class="entity player idle"></div>
+      <div id="boss" class="entity boss pulse"></div>
+      <div id="hazards" class="hazard-row"></div>
+    </section>
+
+    <section id="hand" class="hand"></section>
+    <div class="controls">
+      <button id="end-turn">End Turn</button>
+      <button id="purge-mode" disabled>Purge Mode (later)</button>
+    </div>
+    <div id="log" class="log"></div>
+  </main>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
