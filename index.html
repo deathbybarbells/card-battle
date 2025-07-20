@@ -13,7 +13,12 @@
       <div>Player HP: <span id="player-hp"></span></div>
       <div>Boss HP: <span id="boss-hp"></span></div>
       <div>Energy: <span id="energy"></span></div>
-      <div>Corruption: <span id="corruption"></span>/10</div>
+      <div>
+        Corruption: <span id="corruption"></span>/10
+        <div id="corruption-bar">
+          <div id="corruption-fill"></div>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -31,6 +36,30 @@
     </div>
     <div id="log" class="log"></div>
   </main>
+
+  <!-- Victory/Defeat Overlay -->
+  <div id="overlay" class="overlay hidden">
+    <div class="overlay-content">
+      <h2 id="overlay-title"></h2>
+      <button id="restart-btn">Restart</button>
+    </div>
+  </div>
+
+  <!-- Reward Choice Overlay -->
+  <div id="reward" class="overlay hidden">
+    <div class="overlay-content">
+      <h3>Choose a Card</h3>
+      <div id="reward-cards" class="reward-cards"></div>
+      <button id="skip-reward">Skip</button>
+    </div>
+  </div>
+
+  <!-- Audio (add real .wav/.mp3 later) -->
+  <audio id="sfx-play"  src="assets/audio/play_card.wav" preload="auto"></audio>
+  <audio id="sfx-hit"   src="assets/audio/hit.wav" preload="auto"></audio>
+  <audio id="sfx-block" src="assets/audio/block.wav" preload="auto"></audio>
+  <audio id="sfx-spawn" src="assets/audio/spawn.wav" preload="auto"></audio>
+  <audio id="sfx-hurt"  src="assets/audio/hurt.wav" preload="auto"></audio>
 
   <script type="module" src="src/main.js"></script>
 </body>

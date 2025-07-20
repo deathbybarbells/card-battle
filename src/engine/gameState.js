@@ -9,7 +9,8 @@ export function createInitialState() {
       deck: [],
       drawPile: [],
       discardPile: [],
-      hand: []
+      hand: [],
+      pendingPoison: 0
     },
     boss: { hp: 60, maxHp: 60, block: 0 },
     corruption: 0,
@@ -17,6 +18,7 @@ export function createInitialState() {
     purgeUsed: false,
     phase: 'player',
     log: [],
-    gameOver: null
+    gameOver: null,
+    rewardPending: false
   };
 }

@@ -72,3 +72,33 @@ button:hover { background:#364b66; }
 #log { padding:0.6rem; font-size:0.75rem; max-height:160px; overflow-y:auto; background:#0f141b; border-top:1px solid #222; }
 .status-danger { color:#ff6767; }
 .status-win { color:#6fda6f; font-weight:bold; }
+
+#corruption-bar {
+  width:160px; height:8px; background:#2a3240;
+  border:1px solid #45576e; border-radius:4px; margin-top:4px; position:relative;
+}
+#corruption-fill {
+  height:100%; width:0%;
+  background:linear-gradient(90deg,#ff7b2f,#d93b3b);
+  transition:width .35s;
+  border-radius:4px;
+}
+
+.overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.75);
+  display:flex; align-items:center; justify-content:center;
+  z-index:100;
+}
+.overlay.hidden { display:none; }
+.overlay-content {
+  background:#1b2532; padding:2rem 2.5rem; border:1px solid #3d5168;
+  border-radius:12px; text-align:center;
+  box-shadow:0 0 20px rgba(0,0,0,0.6);
+  min-width:280px;
+}
+.overlay-content h2, .overlay-content h3 { margin-top:0; }
+
+.reward-cards { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+.reward-cards .card { width:130px; }
+
+

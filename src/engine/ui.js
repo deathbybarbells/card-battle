@@ -16,6 +16,10 @@ export function renderAll(state) {
   document.getElementById('energy').textContent = `${state.player.energy}/${state.player.maxEnergy}`;
   document.getElementById('corruption').textContent = state.corruption;
 
+    // Update corruption progress bar fill
+  const pct = Math.min(100, (state.corruption / 10) * 100);
+  document.getElementById('corruption-fill').style.width = pct + '%';
+
   const handDiv = document.getElementById('hand');
   handDiv.innerHTML = '';
   state.player.hand.forEach(card => {
@@ -59,3 +63,4 @@ function attackAnim() {
   player.classList.add('attack');
   setTimeout(()=>player.classList.remove('attack'), 400);
 }
+
