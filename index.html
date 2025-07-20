@@ -1,65 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Corrupted Core Clash</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<link rel="stylesheet" href="styles/main.css" />
+  <meta charset="UTF-8" />
+  <title>Card Core Clash</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="styles/main.css" />
 </head>
 <body>
   <header>
-    <h1>Corrupted Core Clash</h1>
+    <h1>Card Core Clash</h1>
     <div class="meters">
-      <div>Player HP: <span id="player-hp"></span></div>
-      <div>Boss HP: <span id="boss-hp"></span></div>
-      <div>Energy: <span id="energy"></span></div>
-      <div>
+      <div class="meter-box">Player HP: <span id="player-hp"></span></div>
+      <div class="meter-box">Boss HP:   <span id="boss-hp"></span></div>
+      <div class="meter-box">Energy:    <span id="energy"></span></div>
+      <div class="meter-box corruption-wrap">
         Corruption: <span id="corruption"></span>/10
-        <div id="corruption-bar">
-          <div id="corruption-fill"></div>
-        </div>
+        <div id="corruption-bar"><div id="corruption-fill"></div></div>
       </div>
     </div>
   </header>
 
-  <main>
+  <main id="board">
     <section id="battlefield">
-      <div id="player" class="entity player idle"></div>
-      <div id="boss" class="entity boss pulse"></div>
-      <div id="hazards" class="hazard-row"></div>
+      <!-- Hero on left -->
+      <div id="player" class="entity player">
+        <div class="hero">
+          <div class="hero-leg part"></div>
+          <div class="hero-body part"></div>
+          <div class="hero-head part"></div>
+          <div class="hero-helmet part"></div>
+          <div class="hero-arm left part"></div>
+          <div class="hero-arm right part"></div>
+        </div>
+      </div>
+
+      <!-- Boss on right -->
+      <div id="boss" class="entity boss">
+        <!-- dragon sprite -->
+        <div class="dragon-sprite" id="dragon-sprite"></div>
+      </div>
     </section>
 
     <section id="hand" class="hand"></section>
+
     <div class="controls">
       <button id="end-turn">End Turn</button>
       <button id="purge-mode" disabled>Purge Mode (later)</button>
     </div>
+
     <div id="log" class="log"></div>
   </main>
-
-  <!-- Victory/Defeat Overlay -->
-  <div id="overlay" class="overlay hidden">
-    <div class="overlay-content">
-      <h2 id="overlay-title"></h2>
-      <button id="restart-btn">Restart</button>
-    </div>
-  </div>
-
-  <!-- Reward Choice Overlay -->
-  <div id="reward" class="overlay hidden">
-    <div class="overlay-content">
-      <h3>Choose a Card</h3>
-      <div id="reward-cards" class="reward-cards"></div>
-      <button id="skip-reward">Skip</button>
-    </div>
-  </div>
-
-  <!-- Audio (add real .wav/.mp3 later) -->
-  <audio id="sfx-play"  src="assets/audio/play_card.wav" preload="auto"></audio>
-  <audio id="sfx-hit"   src="assets/audio/hit.wav" preload="auto"></audio>
-  <audio id="sfx-block" src="assets/audio/block.wav" preload="auto"></audio>
-  <audio id="sfx-spawn" src="assets/audio/spawn.wav" preload="auto"></audio>
-  <audio id="sfx-hurt"  src="assets/audio/hurt.wav" preload="auto"></audio>
 
   <script type="module" src="src/main.js"></script>
 </body>

@@ -1,104 +1,232 @@
-import { draw } from './deck.js';
+/* =========================================================
+   combat.js – Turn flow & boss behavior (instrumented)
+   ========================================================= */
+import { pushLog } from './log.js';
+import { checkEnd } from './end.js';
+import { renderAll } from './ui.js';
+import { drawUpTo } from './deck.js';
+import { playSFX } from './sound.js';
+
+const trace = m => window.__cccPhaseTrace && window.__cccPhaseTrace(m);
+
+/* Boss action script (simple cycling pattern) */
+const BOSS_ACTIONS = [
+  { key:'claw',   text:'Claw swipe',     base:6, hits:1, pierce:0,    corruption:0 },
+  { key:'bite',   text:'Heavy bite',     base:9, hits:1, pierce:0.25, corruption:0 },
+  { key:'flurry', text:'Wing flurry',    base:4, hits:2, pierce:0,    corruption:0 },
+  { key:'breath', text:'Corrupt breath', base:5, hits:1, pierce:0.15, corruption:2 }
+];
+
+function bossScaling(turn) {
+  return Math.floor(turn / 2);
+}
+
+function pickBossIntent(state) {
+  const idx = (state.turn - 1) % BOSS_ACTIONS.length;
+  return { ...BOSS_ACTIONS[idx] };
+}
+
+function resetTurnMetrics(state) {
+  state._turnStats = { dmgOut:0, dmgIn:0, cards:0, blockGained:0 };
+}
+
+/* ------------------ Exports ------------------ */
+
+export function initializeBossIntent(state) {
+  state.bossIntent = pickBossIntent(state);
+  pushLog(state, `Boss prepares: ${state.bossIntent.text}.`);
+}
 
 export function startPlayerTurn(state) {
   state.phase = 'player';
   state.player.block = 0;
-  state.player.energy = Math.min(state.player.maxEnergy, state.player.energy + 1);
-  draw(state, 5 - state.player.hand.length);
-  pushLog(state, `Turn ${state.turn} begins.`);
+  const focusPlays = (state.meta && state.meta.focusPlays) || 0;
+  const baseEnergy = 3 + focusPlays;
+  state.player.energy = Math.min(state.player.maxEnergy, baseEnergy);
+  drawUpTo(state, 5);
+  resetTurnMetrics(state);
+  pushLog(
+    state,
+    `[Turn ${state.turn}] Your turn begins (E ${state.player.energy}/${state.player.maxEnergy}, Hand ${state.player.hand.length}).`
+  );
+  trace(`TURN START: ${state.turn} energy=${state.player.energy} hand=${state.player.hand.length}`);
+  renderAll(state);
 }
 
 export function endPlayerTurn(state) {
+  if (state.phase !== 'player') return;
+  if (state._turnStats) {
+    pushLog(
+      state,
+      `[Turn ${state.turn} Summary] Cards:${state._turnStats.cards} DmgOut:${state._turnStats.dmgOut} DmgIn:${state._turnStats.dmgIn} BlockGained:${state._turnStats.blockGained}`
+    );
+    trace(
+      `SUMMARY: Turn ${state.turn} cards=${state._turnStats.cards} out=${state._turnStats.dmgOut} in=${state._turnStats.dmgIn} block=${state._turnStats.blockGained}`
+    );
+  }
   state.phase = 'enemy';
+  trace('PHASE -> enemy (begin enemyTurn)');
+  pushLog(state, 'End of your turn.');
+  enemyTurn(state);
 }
 
 export function enemyTurn(state) {
-  const r = Math.random();
-  if (r < 0.4) {
-    const hazard = { id: 'spike'+Date.now(), name: 'Spike', dmg: 3 };
-    state.hazards.push(hazard);
-    pushLog(state, 'Boss spawns Spike hazard (+3 dmg).');
-  } else {
-    let dmg = 7;
-    dmg = applyDamageToPlayer(state, dmg);
-    pushLog(state, `Boss hits for ${dmg}.`);
+  trace('ENEMY TURN ENTER');
+  const intent = state.bossIntent;
+
+  if (!intent) {
+    console.error('[CCC] Missing bossIntent');
+    pushLog(state, '!! ERROR: No boss intent; skipping enemy turn.');
+    recoverToNextTurn(state);
+    return;
   }
-  resolveHazards(state);
-  state.corruption++;
-  state.turn++;
-  checkEnd(state);
-  if (!state.gameOver) startPlayerTurn(state);
-}
+  if (typeof intent.base !== 'number' || typeof intent.hits !== 'number') {
+    console.error('[CCC] Corrupt bossIntent object:', intent);
+    pushLog(state, '!! ERROR: Corrupt boss intent.');
+    recoverToNextTurn(state);
+    return;
+  }
 
-export function playCard(state, card) {
-  if (card.cost > state.player.energy || state.phase !== 'player' || state.gameOver) return;
-  state.player.energy -= card.cost;
+  pushLog(state, `Boss acts: ${intent.text}.`);
+  playSFX('monsterAttack');
 
-  if (card.type === 'attack') {
-    const dealt = applyDamageToBoss(state, card.dmg);
-    pushLog(state, `You strike for ${dealt}.`);
-  } else if (card.type === 'skill') {
-    state.player.block += card.block;
-    pushLog(state, `You gain ${card.block} block.`);
-  } else if (card.effect === 'gainEnergyNext') {
-    state.player.maxEnergy = Math.min(7, state.player.maxEnergy + 1);
-    pushLog(state, `Focus raises max energy (${state.player.maxEnergy}).`);
-  } else if (card.effect === 'purge') {
-    if (!state.purgeUsed) {
-      const sacrificial = state.player.hand.find(c=>c.id.startsWith('strike') && c!==card);
-      if (sacrificial) {
-        state.player.hand = state.player.hand.filter(c => c!==sacrificial && c!==card);
-        state.player.maxEnergy = Math.min(8, state.player.maxEnergy + 1);
-        pushLog(state, `Purged a Strike: +1 max energy (${state.player.maxEnergy}).`);
-        state.purgeUsed = true;
-      } else {
-        pushLog(state,'No valid card to purge.');
-      }
-      checkEnd(state);
-      return;
-    } else {
-      pushLog(state,'Purge already used.');
+  const scale = bossScaling(state.turn);
+  const corruptionBonus = Math.floor(state.corruption / 3);
+  const totalScale = scale + corruptionBonus;
+
+  let totalDealt = 0;
+  for (let i = 0; i < intent.hits; i++) {
+    const raw = intent.base + totalScale;
+    const dmgDealt = applyBossDamage(state, raw, intent.pierce);
+    totalDealt += dmgDealt;
+
+    pushLog(
+      state,
+      `  Hit ${i + 1}: ${dmgDealt} dmg (raw ${raw}${
+        intent.pierce ? `, pierce ${Math.round(intent.pierce * 100)}%` : ''
+      }).`
+    );
+
+    if (state.player.hp <= 0) break;
+    spawnDamageFloater('#player', dmgDealt);
+
+    // if any damage was blocked, play the block SFX
+    if (raw - dmgDealt > 0) {
+      playSFX('block');
     }
   }
 
-  state.player.hand = state.player.hand.filter(c => c !== card);
-  state.player.discardPile.push(card);
-  checkEnd(state);
-}
-
-function applyDamageToBoss(state, dmg) {
-  const blocked = Math.min(state.boss.block, dmg);
-  state.boss.block -= blocked;
-  const real = dmg - blocked;
-  state.boss.hp = Math.max(0, state.boss.hp - real);
-  checkEnd(state);
-  return real;
-}
-
-function applyDamageToPlayer(state, dmg) {
-  const blocked = Math.min(state.player.block, dmg);
-  state.player.block -= blocked;
-  const real = dmg - blocked;
-  state.player.hp = Math.max(0, state.player.hp - real);
-  checkEnd(state);
-  return real;
-}
-
-function resolveHazards(state) {
-  let total = 0;
-  for (const h of state.hazards) total += h.dmg;
-  if (total) {
-    const taken = applyDamageToPlayer(state, total);
-    pushLog(state, `Hazards deal ${taken} damage.`);
+  if (intent.corruption) {
+    state.corruption += intent.corruption;
+    pushLog(state, `Corruption +${intent.corruption} (now ${state.corruption}).`);
   }
+
+  pushLog(state, `Boss total damage: ${totalDealt}.`);
+  trace(`ENEMY TURN DEALT total=${totalDealt}`);
+
+  if (checkEnd(state)) {
+    renderAll(state);
+    return;
+  }
+
+  // Advance to next turn
+  state.turn += 1;
+  state.bossIntent = pickBossIntent(state);
+  pushLog(state, `Boss prepares: ${state.bossIntent.text}.`);
+  startPlayerTurn(state);
 }
 
-function pushLog(state, msg) {
-  state.log.unshift(msg);
-  if (state.log.length > 120) state.log.pop();
+function recoverToNextTurn(state) {
+  state.turn += 1;
+  state.bossIntent = pickBossIntent(state);
+  startPlayerTurn(state);
 }
 
-function checkEnd(state) {
-  if (state.boss.hp <= 0) state.gameOver = 'win';
-  else if (state.player.hp <= 0 || state.corruption >= 10) state.gameOver = 'lose';
+// Player damage to boss
+export function applyDamageToBoss(state, dmg) {
+  playSFX('heroAttack');
+
+  let absorbed = 0;
+  if (state.boss.block > 0) {
+    absorbed = Math.min(state.boss.block, dmg);
+    state.boss.block -= absorbed;
+    if (absorbed > 0) {
+      playSFX('block');
+    }
+  }
+
+  const actual = dmg - absorbed;
+  state.boss.hp = Math.max(0, state.boss.hp - actual);
+
+  pushLog(
+    state,
+    `You deal ${actual}${absorbed ? ` (blocked ${absorbed})` : ''} to the boss.`
+  );
+  if (actual > 0) {
+    playSFX('monsterHurt');
+  }
+  if (state._turnStats) {
+    state._turnStats.dmgOut += actual;
+  }
+  checkEnd(state);
+}
+
+function applyBossDamage(state, raw, pierce = 0) {
+  if (pierce > 0 && state.player.block > 0) {
+    const shredded = Math.floor(state.player.block * pierce);
+    if (shredded > 0) {
+      state.player.block = Math.max(0, state.player.block - shredded);
+      pushLog(state, `  Pierce shreds ${shredded} block.`);
+    }
+  }
+  const absorbed = Math.min(state.player.block, raw);
+  state.player.block -= absorbed;
+  const dmg = raw - absorbed;
+  state.player.hp = Math.max(0, state.player.hp - dmg);
+  if (state._turnStats) {
+    state._turnStats.dmgIn += dmg;
+  }
+  return dmg;
+}
+
+function spawnDamageFloater(selector, dmg) {
+  const host = document.querySelector(selector);
+  if (!host) {
+    return;
+  }
+  const el = document.createElement('div');
+  el.className = 'dmg-floater';
+  el.textContent = dmg > 0 ? `-${dmg}` : '0';
+  host.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('shown'));
+  setTimeout(() => el.remove(), 900);
+}
+
+export function gainEnergyNow(state, amount = 1) {
+  state.player.energy = Math.min(
+    state.player.maxEnergy,
+    state.player.energy + amount
+  );
+  pushLog(state, `+${amount} Energy (now ${state.player.energy}).`);
+}
+
+export function gainFutureEnergy(state, inc = 1) {
+  state.player.maxEnergy += inc;
+  pushLog(state, `Max Energy now ${state.player.maxEnergy}.`);
+  playSFX('powerUp');
+}
+
+export function bossGainCorruption(state, n = 1) {
+  state.corruption += n;
+  pushLog(state, `Corruption +${n} (now ${state.corruption}).`);
+}
+
+export function recordCardPlay(state, { dmg = 0, block = 0 }) {
+  if (!state._turnStats) {
+    return;
+  }
+  state._turnStats.cards += 1;
+  if (dmg) state._turnStats.dmgOut += dmg;
+  if (block) state._turnStats.blockGained += block;
+  playSFX('playCard');
 }
