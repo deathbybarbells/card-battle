@@ -1,6 +1,6 @@
 /* =========================================================
    end.js – victory / defeat detection & overlay handling
-   Corrupted Core Clash
+   Card Core Clash
    ========================================================= */
 
 import { pushLog } from './log.js';
